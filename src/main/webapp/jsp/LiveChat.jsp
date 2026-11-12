@@ -49,50 +49,53 @@
 
 
         <!-- FILTROS -->
-        <div class="lc-filter-row">
+        <!-- FILTROS -->
+        <div class="lc-filter-row" id="lcFilterRow">
 
-            <button
-                type="button"
-                class="lc-filter-btn lc-filter-active">
-
+            <button type="button"
+                    class="lc-filter-btn lc-filter-active"
+                    data-lc-filter="ALL"
+                    aria-pressed="true">
                 Todos
-
             </button>
 
-            <button
-                type="button"
-                class="lc-filter-btn">
-
+            <button type="button"
+                    class="lc-filter-btn"
+                    data-lc-filter="AI"
+                    aria-pressed="false">
                 <i class="bi bi-robot"></i>
                 IA
-
             </button>
 
-            <button
-                type="button"
-                class="lc-filter-btn">
-
+            <button type="button"
+                    class="lc-filter-btn"
+                    data-lc-filter="HUMAN"
+                    aria-pressed="false">
                 <i class="bi bi-person"></i>
                 Humano
-
             </button>
 
-            <button
-                type="button"
-                class="lc-filter-btn">
-
+            <button type="button"
+                    class="lc-filter-btn"
+                    data-lc-filter="UNREAD"
+                    aria-pressed="false">
                 <i class="bi bi-chat-square"></i>
                 Sin leer
-
             </button>
 
-            <button
-                type="button"
-                class="lc-icon-btn lc-archive-btn"
-                title="Archivadas">
+            <button type="button"
+                    class="lc-filter-btn"
+                    data-lc-filter="UNANSWERED"
+                    aria-pressed="false">
+                <i class="bi bi-chat-left-dots"></i>
+                Sin responder
+            </button>
 
+            <!-- Mantener el botón de archivadas -->
+            <button type="button"
+                    class="lc-icon-btn lc-archive-btn"
+                    title="Archivadas">
                 <i class="bi bi-archive"></i>
-
             </button>
 
         </div>
@@ -132,7 +135,7 @@
                     </div>
 
                     <div class="lc-contact-phone" id="lcContactPhone">
-                        
+
                     </div>
 
                 </div>

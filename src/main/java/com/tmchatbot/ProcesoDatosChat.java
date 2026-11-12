@@ -1,4 +1,3 @@
-
 package com.tmchatbot;
 
 import java.io.IOException;
@@ -23,200 +22,245 @@ import java.nio.charset.StandardCharsets;
  */
 @WebServlet(name = "ProcesoDatosChat", urlPatterns = {"/ProcesoDatosChat"})
 public class ProcesoDatosChat extends HttpServlet {
+
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)  throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String token = getToken.token(request);
-        if (token == null ||
-            token.trim().isEmpty()) {
+        if (token == null
+                || token.trim().isEmpty()) {
             response.setStatus(
-                HttpServletResponse.SC_UNAUTHORIZED
+                    HttpServletResponse.SC_UNAUTHORIZED
             );
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write( "{\"error\":\"TokenVencido\"}" );
+            response.getWriter().write("{\"error\":\"TokenVencido\"}");
             return;
         }
         String body = leerBody(request);
         System.out.println(
-            "LiveChat request: " + body
+                "LiveChat request: " + body
         );
         try {
-            JSONObject json =  new JSONObject(body);
-            String accion = json.optString( "Accion", "" );
+            JSONObject json = new JSONObject(body);
+            String accion = json.optString("Accion", "");
 
             ApiResponse apiResponse = procesarAccion(accion, json, token);
             response.setStatus(
-                apiResponse.status
+                    apiResponse.status
             );
             response.setContentType(
-                "application/json;charset=UTF-8"
+                    "application/json;charset=UTF-8"
             );
             response.setCharacterEncoding(
-                "UTF-8"
+                    "UTF-8"
             );
             response.getWriter().write(
-                apiResponse.body
+                    apiResponse.body
             );
         } catch (Exception ex) {
             ex.printStackTrace();
             response.setStatus(
-                HttpServletResponse
-                    .SC_INTERNAL_SERVER_ERROR
+                    HttpServletResponse.SC_INTERNAL_SERVER_ERROR
             );
             response.setContentType(
-                "application/json;charset=UTF-8"
+                    "application/json;charset=UTF-8"
             );
-            JSONObject error =new JSONObject();
-            error.put( "error", ex.getMessage());
+            JSONObject error = new JSONObject();
+            error.put("error", ex.getMessage());
             response.getWriter().write(
-                error.toString()
+                    error.toString()
             );
         }
     }
-    private String leerBody(HttpServletRequest request)throws IOException {
-        StringBuilder body =new StringBuilder();
+
+    private String leerBody(HttpServletRequest request) throws IOException {
+        StringBuilder body = new StringBuilder();
         try (
-            BufferedReader reader =
-                new BufferedReader(
-                    new InputStreamReader(
-                        request.getInputStream(),
-                        StandardCharsets.UTF_8
-                    )
-                )
-        ) {
+                BufferedReader reader
+                = new BufferedReader(
+                        new InputStreamReader(
+                                request.getInputStream(),
+                                StandardCharsets.UTF_8
+                        )
+                )) {
 
             String line;
 
-
-            while (
-                (line = reader.readLine())
-                    != null
-            ) {
+            while ((line = reader.readLine())
+                    != null) {
 
                 body.append(line);
             }
         }
 
-
         return body.toString();
     }
-    private ApiResponse procesarAccion(String accion,JSONObject json,String token)throws IOException {
+
+    private ApiResponse procesarAccion(String accion, JSONObject json, String token) throws IOException {
         switch (accion) {
             // ==========================
             // CONVERSACIONES
             // ==========================
-            case "GetLiveChatConversations":  
+            case "GetLiveChatConversations":
                 String channelCode = json.optString("Parametro1");
-                if (!"WHATSAPP".equals(channelCode) &&
-                    !"MERCADO_LIBRE".equals(channelCode)) {
+                if (!"WHATSAPP".equals(channelCode)
+                        && !"MERCADO_LIBRE".equals(channelCode)) {
                     return new ApiResponse(
-                        HttpServletResponse.SC_BAD_REQUEST,
-                        "{\"error\":\"Canal inválido\"}"
+                            HttpServletResponse.SC_BAD_REQUEST,
+                            "{\"error\":\"Canal inválido\"}"
                     );
                 }
-                return enviarSolicitud("GET", urlstatic.LIVECHAT_URL + "/conversations/"+channelCode, token, null);
+                return enviarSolicitud("GET", urlstatic.LIVECHAT_URL + "/conversations/" + channelCode, token, null);
             // ==========================
             // TAKE CONVERSACIONES
             // ==========================
             case "TakeConversation":
-                long conversationIdt =json.getLong("Parametro1");
-                return enviarSolicitud("POST", urlstatic.LIVECHAT_URL + "/conversations/"+conversationIdt+"/take", token, null);
+                long conversationIdt = json.getLong("Parametro1");
+                return enviarSolicitud("POST", urlstatic.LIVECHAT_URL + "/conversations/" + conversationIdt + "/take", token, null);
+            case "GetCurrentLiveChatOperator":
+                return enviarSolicitud(
+                        "GET",
+                        urlstatic.LIVECHAT_URL + "/me",
+                        token,
+                        null
+                );
+
+            case "TakeOverConversation":
+                long takeoverConversationId
+                        = json.getLong("Parametro1");
+
+                long expectedAssignedUserId
+                        = json.getLong("Parametro2");
+
+                JSONObject takeoverBody = new JSONObject();
+
+                takeoverBody.put(
+                        "expectedAssignedUserId",
+                        expectedAssignedUserId
+                );
+
+                return enviarSolicitud(
+                        "POST",
+                        urlstatic.LIVECHAT_URL
+                        + "/conversations/"
+                        + takeoverConversationId
+                        + "/takeover",
+                        token,
+                        takeoverBody.toString()
+                );
             // ==========================
             // MENSAJES
             // ==========================
             case "GetLiveChatMessages":
-                long conversationId =json.getLong("Parametro1");
-                String beforeId =json.optString("Parametro2","");
-                int limit =json.optInt("Parametro3",30);
+                long conversationId = json.getLong("Parametro1");
+                String beforeId = json.optString("Parametro2", "");
+                int limit = json.optInt("Parametro3", 30);
                 StringBuilder url = new StringBuilder();
                 url.append(
-                    urlstatic.LIVECHAT_URL
+                        urlstatic.LIVECHAT_URL
                 );
                 url.append("/conversations/");
                 url.append(conversationId);
                 url.append("/messages?limit=");
                 url.append(limit);
-                if (
-                    beforeId != null &&
-                    !beforeId.trim().isEmpty()
-                ) {
+                if (beforeId != null
+                        && !beforeId.trim().isEmpty()) {
 
                     url.append(
-                        "&beforeId="
+                            "&beforeId="
                     );
 
                     url.append(
-                        beforeId
+                            beforeId
                     );
                 }
-                return enviarSolicitud("GET",url.toString(),token, null);
+                return enviarSolicitud("GET", url.toString(), token, null);
             // ==========================
             // ASIGNACIÓN
             // ==========================
             case "ChangeLiveChatAssignment":
-                long assignmentConversationId =json.getLong("Parametro1");
-                JSONObject assignment =json.getJSONObject("Data");
-                return enviarSolicitud("PUT", urlstatic.LIVECHAT_URL +"/conversations/" +assignmentConversationId + "/assignment",
-                    token,assignment.toString());
+                long assignmentConversationId = json.getLong("Parametro1");
+                JSONObject assignment = json.getJSONObject("Data");
+                return enviarSolicitud("PUT", urlstatic.LIVECHAT_URL + "/conversations/" + assignmentConversationId + "/assignment",
+                        token, assignment.toString());
             // ==========================
             // Devolvier a IA
             // ==========================    
             case "ReturnConversationToAI":
                 long returnConversationId = json.getLong("Parametro1");
-                return enviarSolicitud("POST",urlstatic.LIVECHAT_URL + "/conversations/" + returnConversationId + "/return-ai",token,null); 
-                
+                return enviarSolicitud("POST", urlstatic.LIVECHAT_URL + "/conversations/" + returnConversationId + "/return-ai", token, null);
+
             case "MarkLiveChatRead":
                 long conversationId2 = json.getLong("Parametro1");
-                String url2 =urlstatic.LIVECHAT_URL  + "/conversations/" +
-                    conversationId2 + "/read";
-                return enviarSolicitud("PUT",url2,token, "{}");                
+                String url2 = urlstatic.LIVECHAT_URL + "/conversations/"
+                        + conversationId2 + "/read";
+                return enviarSolicitud("PUT", url2, token, "{}");
+            // ==========================
+            // HearBeat
+            // ==========================
+            case "LiveChatHeartbeat":
+                return enviarSolicitud(
+                        "POST",
+                        urlstatic.LIVECHAT_URL + "/presence/heartbeat",
+                        token,
+                        "{}"
+                );
+
+            case "LiveChatAvailability":
+                return enviarSolicitud(
+                        "GET",
+                        urlstatic.LIVECHAT_URL + "/presence/availability",
+                        token,
+                        null
+                );
             default:
-                return new ApiResponse( HttpServletResponse.SC_BAD_REQUEST, "{\"error\":\"Accion no reconocida\"}");
+                return new ApiResponse(HttpServletResponse.SC_BAD_REQUEST, "{\"error\":\"Accion no reconocida\"}");
         }
     }
-    private ApiResponse enviarSolicitud(String method, String urlString,String token,String body) throws IOException {
+
+    private ApiResponse enviarSolicitud(String method, String urlString, String token, String body) throws IOException {
         URL url = new URL(urlString);
-        HttpURLConnection conn =(HttpURLConnection)url.openConnection();
-        conn.setRequestMethod( method);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod(method);
         conn.setRequestProperty(
-            "Authorization",
-            "Bearer " + token
+                "Authorization",
+                "Bearer " + token
         );
         conn.setRequestProperty(
-            "Accept",
-            "application/json"
+                "Accept",
+                "application/json"
         );
         /*
          * Solamente enviamos body
          * cuando corresponde.
          */
-        if ( body != null && !body.isEmpty()) {
+        if (body != null && !body.isEmpty()) {
             conn.setRequestProperty(
-                "Content-Type",
-                "application/json; charset=UTF-8"
+                    "Content-Type",
+                    "application/json; charset=UTF-8"
             );
             conn.setDoOutput(true);
             try (OutputStream os = conn.getOutputStream()) {
-                byte[] input =
-                    body.getBytes(
-                        StandardCharsets.UTF_8
-                    );
+                byte[] input
+                        = body.getBytes(
+                                StandardCharsets.UTF_8
+                        );
                 os.write(
-                    input,
-                    0,
-                    input.length
+                        input,
+                        0,
+                        input.length
                 );
             }
         }
         int status = conn.getResponseCode();
         InputStream stream;
-        if (status >= 200 &&  status < 300 ) {
-            stream =  conn.getInputStream();
+        if (status >= 200 && status < 300) {
+            stream = conn.getInputStream();
         } else {
-            stream =conn.getErrorStream();
+            stream = conn.getErrorStream();
         }
-        StringBuilder result =new StringBuilder();
+        StringBuilder result = new StringBuilder();
         if (stream != null) {
-            try (BufferedReader br =new BufferedReader(new InputStreamReader( stream,StandardCharsets.UTF_8))) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = br.readLine()) != null) {
                     result.append(line);
@@ -225,24 +269,25 @@ public class ProcesoDatosChat extends HttpServlet {
         }
         conn.disconnect();
         return new ApiResponse(
-            status,
-            result.toString()
+                status,
+                result.toString()
         );
     }
+
     private static class ApiResponse {
+
         private final int status;
         private final String body;
+
         public ApiResponse(
                 int status,
                 String body) {
 
-            this.status =
-                status;
+            this.status
+                    = status;
 
-            this.body =
-                body;
+            this.body
+                    = body;
         }
     }
 }
-
-

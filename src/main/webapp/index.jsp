@@ -280,7 +280,7 @@
                         })
                     });
 
-                    if (!response.success) {
+                    if (response.usuario !== usuarioPendiente) {
                         $error.text(
                                 response.message || "No se pudo actualizar la contraseña."
                                 );
