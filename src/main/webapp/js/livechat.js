@@ -14,6 +14,7 @@ let lcOldestMessageId = null;
 let lcLoaded = false;
 let lcHeartbeat = null;
 let lcHeartbeatTimer = null;
+let lcSocketConnecting = false;
 
 const LIVECHAT_CHANNELS = {
     WHATSAPP: {
@@ -1388,170 +1389,140 @@ document
         );
 async function connectLiveChat() {
 
+    if (lcSocketConnecting ||
+        lcSocket?.readyState === WebSocket.OPEN ||
+        lcSocket?.readyState === WebSocket.CONNECTING) {
+        return;
+    }
+
+    lcSocketConnecting = true;
+
     try {
-
-        /*
-         * 1. JWT temporal firmado
-         * por el Servlet.
-         */
-        const response =
-                await fetch(
-                        contextPath +
-                        "/livechat/token",
-                        {
-                            method: "POST",
-
-                            credentials:
-                                    "include",
-
-                            headers: {
-                                "Content-Type":
-                                        "application/json"
-                            }
-                        }
-                );
-
+        const response = await fetch(
+            contextPath + "/livechat/token",
+            {
+                method: "POST",
+                credentials: "include",
+                cache: "no-store"
+            }
+        );
 
         if (response.status === 401) {
-
             handleLiveChatUnauthorized();
-
             return;
         }
 
-
         if (!response.ok) {
-
             throw new Error(
-                    "No se pudo obtener " +
-                    "el token LiveChat."
-                    );
+                "Error obteniendo JWT: HTTP " + response.status
+            );
         }
 
+        const data = await response.json();
 
-        const data =
-                await response.json();
+        if (data.success !== true ||
+            typeof data.token !== "string" ||
+            !data.token.trim()) {
 
-
-        if (
-                !data.success ||
-                !data.token
-                ) {
-            throw new Error(
-                    "Token LiveChat inválido."
-                    );
+            throw new Error("El servidor no devolvió un JWT válido");
         }
 
-
-        /*
-         * 2. Abrimos WS.
-         */
-        connectLiveChatSocket(
-                data.token
-                );
+        connectLiveChatSocket(data.token);
 
     } catch (error) {
 
-        console.error(
-                "Error conectando LiveChat:",
-                error
-                );
+        console.error("Error conectando LiveChat:", error);
+
+        scheduleLiveChatReconnect();
+
+    } finally {
+        lcSocketConnecting = false;
     }
 }
+function scheduleLiveChatReconnect() {
 
+    if (lcSocketReconnectTimer !== null)
+        return;
+
+    lcSocketReconnectTimer = setTimeout(() => {
+
+        lcSocketReconnectTimer = null;
+        connectLiveChat();
+
+    }, 3000);
+}
 function connectLiveChatSocket(token) {
-    const protocol =
-            location.protocol === "https:"
+
+    if (typeof token !== "string" || !token.trim()) {
+        console.error("Se intentó conectar WS sin JWT");
+        scheduleLiveChatReconnect();
+        return;
+    }
+
+    const protocol = location.protocol === "https:"
             ? "wss:"
             : "ws:";
+    //const url = "ws://localhost:47994/ws/livechat?token=" +  encodeURIComponent(token);
+    const url = protocol + "//" +  window.location.host + "/ws/livechat?token=" + encodeURIComponent(token);
 
-    const url = "ws://localhost:47994/ws/livechat?token=" +  encodeURIComponent(token);
-    //const url = protocol + "//" + window.location.host + "/ws/livechat?token=" + encodeURIComponent(token);
-    console.log(
-            "Conectando LiveChat WS:",
-            url
-            );
-    lcSocket = new WebSocket(url);
+    const ws = new WebSocket(url);
+    lcSocket = ws;
 
+    ws.onopen = () => {
 
-    lcSocket.onopen =
-            function () {
+        if (lcSocket !== ws)
+            return;
 
-                console.log(
-                        "LiveChat WS conectado"
-                        );
+        console.log("LiveChat WS conectado");
 
-                if (
-                        lcSocketReconnectTimer
-                        ) {
+        if (lcSocketReconnectTimer !== null) {
+            clearTimeout(lcSocketReconnectTimer);
+            lcSocketReconnectTimer = null;
+        }
 
-                    clearTimeout(
-                            lcSocketReconnectTimer
-                            );
+        startLiveChatWsHeartbeat();
+        startLiveChatHeartbeat();
+        updateChatInput();
+    };
 
-                    lcSocketReconnectTimer =
-                            null;
-                }
-                startLiveChatHeartbeat();
-            };
+    ws.onmessage = event => {
 
+        if (lcSocket !== ws)
+            return;
 
-    lcSocket.onmessage =
-            function (event) {
-                if (event.data === "PONG") {
-                    return;
-                }
+        if (event.data === "PONG")
+            return;
 
-                try {
+        try {
+            handleLiveChatEvent(JSON.parse(event.data));
+        } catch (error) {
+            console.error("Evento WS inválido:", error);
+        }
+    };
 
-                    const data =
-                            JSON.parse(
-                                    event.data
-                                    );
+    ws.onerror = error => {
+        if (lcSocket === ws)
+            console.error("LiveChat WS error:", error);
+    };
 
+    ws.onclose = event => {
 
-                    handleLiveChatEvent(
-                            data
-                            );
+        if (lcSocket !== ws)
+            return;
 
-                } catch (error) {
+        console.warn(
+            "LiveChat WS desconectado:",
+            event.code,
+            event.reason
+        );
 
-                    console.error(
-                            "Evento WS inválido:",
-                            event.data,
-                            error
-                            );
-                }
-            };
+        lcSocket = null;
 
+        stopLiveChatWsHeartbeat();
+        updateChatInput();
 
-    lcSocket.onerror =
-            function (error) {
-
-                console.error(
-                        "LiveChat WS error:",
-                        error
-                        );
-            };
-
-
-    lcSocket.onclose =
-            function () {
-                stopLiveChatHeartbeat();
-                console.warn(
-                        "LiveChat WS desconectado"
-                        );
-
-
-                lcSocket = null;
-
-
-                lcSocketReconnectTimer =
-                        setTimeout(
-                                connectLiveChatSocket,
-                                3000
-                                );
-            };
+        scheduleLiveChatReconnect();
+    };
 }
 function handleLiveChatEvent(
         event
@@ -2033,9 +2004,9 @@ async function changeCurrentAssignment() {
 
 
 
-function startLiveChatHeartbeat() {
+function startLiveChatWsHeartbeat() {
 
-    stopLiveChatHeartbeat();
+    stopLiveChatWsHeartbeat();
 
 
     lcHeartbeat =
@@ -2058,7 +2029,7 @@ function startLiveChatHeartbeat() {
 }
 
 
-function stopLiveChatHeartbeat() {
+function stopLiveChatWsHeartbeat() {
 
     if (lcHeartbeat) {
 

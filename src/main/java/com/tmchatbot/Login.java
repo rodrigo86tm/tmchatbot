@@ -1,4 +1,3 @@
-
 package com.tmchatbot;
 
 import java.io.IOException;
@@ -12,8 +11,8 @@ import org.json.JSONObject;
 @WebServlet(name = "Login", urlPatterns = {"/Login"})
 public class Login extends HttpServlet {
 
-    private static final Set<String> ALLOWED_ROLES =
-            new HashSet<>(Arrays.asList(
+    private static final Set<String> ALLOWED_ROLES
+            = new HashSet<>(Arrays.asList(
                     "Jefe",
                     "Logistica",
                     "Administrador",
@@ -71,8 +70,8 @@ public class Login extends HttpServlet {
 
                 if (result.optBoolean("requireMfa")) {
 
-                    String ticket =
-                            result.optString("mfaTicket");
+                    String ticket
+                            = result.optString("mfaTicket");
 
                     if (ticket.isEmpty()) {
                         error(response, 502, "Ticket MFA ausente");
@@ -92,11 +91,9 @@ public class Login extends HttpServlet {
 
             } else if ("code".equals(type)) {
 
-                String ticket = (String)
-                        session.getAttribute("mfaTicket");
+                String ticket = (String) session.getAttribute("mfaTicket");
 
-                String pendingUser = (String)
-                        session.getAttribute("mfaUsername");
+                String pendingUser = (String) session.getAttribute("mfaUsername");
 
                 if (ticket == null
                         || !username.equals(pendingUser)) {
@@ -115,11 +112,11 @@ public class Login extends HttpServlet {
                 return;
             }
 
-            String accessToken =
-                    result.optString("AccessToken");
+            String accessToken
+                    = result.optString("AccessToken");
 
-            String refreshToken =
-                    result.optString("RefreshToken");
+            String refreshToken
+                    = result.optString("RefreshToken");
 
             if (accessToken.isEmpty()
                     || refreshToken.isEmpty()) {
@@ -130,8 +127,8 @@ public class Login extends HttpServlet {
             JSONObject profileResponse = AuthApiClient.get(
                     "/me", accessToken);
 
-            JSONObject profile =
-                    profileResponse.getJSONObject("data");
+            JSONObject profile
+                    = profileResponse.getJSONObject("data");
 
             String rol = profile.optString("Rol");
 
@@ -151,10 +148,20 @@ public class Login extends HttpServlet {
                 error(response, 403, "No autorizado");
                 return;
             }
-
-            // Evitar reutilizar una sesión previa al login.
+            AuthSessionData auth = new AuthSessionData(
+                    profile.optString("Usuario"),
+                    rol,
+                    profile.optString("Sucursal"),
+                    accessToken,
+                    refreshToken,
+                    result.optString("AccessExpiresAtUtc"),
+                    result.optString("RefreshExpiresAtUtc")
+            );
             session.invalidate();
             session = request.getSession(true);
+            
+            session.setAttribute("AUTH_SESSION", auth);
+            // Evitar reutilizar una sesión previa al login.     
 
             session.setAttribute("accessToken", accessToken);
             session.setAttribute("refreshToken", refreshToken);

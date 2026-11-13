@@ -97,6 +97,15 @@ public class ProcesoDatosChat extends HttpServlet {
 
     private ApiResponse procesarAccion(String accion, JSONObject json, String token) throws IOException {
         switch (accion) {
+            case "GetConversationAnalytics":
+                String from = json.optString("Parametro1", "");
+                String to = json.optString("Parametro2", "");
+                String channel = json.optString("Parametro3", "");
+                if (!from.matches("\\d{4}-\\d{2}-\\d{2}") || !to.matches("\\d{4}-\\d{2}-\\d{2}") || !channel.matches("[A-Za-z0-9_]{0,50}")) {
+                    return new ApiResponse(400, "{\"error\":\"Filtros inválidos\"}");
+                }
+                return enviarSolicitud("GET", urlstatic.LIVECHAT_URL + "/analytics/conversations?from=" + from + "&to=" + to + "&channel=" + channel, token, null);
+
             // ==========================
             // CONVERSACIONES
             // ==========================

@@ -1,4 +1,3 @@
-
 package com.tmchatbot;
 
 import java.io.BufferedReader;
@@ -21,8 +20,8 @@ import javax.servlet.http.HttpSession;
 import org.json.JSONObject;
 
 @WebServlet(
-    name = "LiveChatToken",
-    urlPatterns = {"/livechat/token"}
+        name = "LiveChatToken",
+        urlPatterns = {"/livechat/token"}
 )
 public class LiveChatToken extends HttpServlet {
 
@@ -33,11 +32,11 @@ public class LiveChatToken extends HttpServlet {
 
         try {
 
-            String privateKeyPath =
-                    "C:\\Security\\chat-private.pem";
+            String privateKeyPath
+                    = "C:\\Security\\chat-private.pem";
 
-            tokenService =
-                    new LiveChatTokenService(privateKeyPath);
+            tokenService
+                    = new LiveChatTokenService(privateKeyPath);
 
         } catch (Exception e) {
 
@@ -48,66 +47,79 @@ public class LiveChatToken extends HttpServlet {
     }
 
     @Override
-    protected void doPost( HttpServletRequest request,HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
 
-        response.setContentType("application/json;charset=UTF-8");
+        response.setContentType(
+                "application/json;charset=UTF-8"
+        );
+
         response.setHeader("Cache-Control", "no-store");
-        // 1. Validar sesión y renovar token si hace falta.
+
         try {
-            getToken.token(request);
+
+            // Validar y renovar el Access Token si corresponde.
+            String accessToken
+                    = AuthSessionManager.getValidAccessToken(request);
+
+            // Recuperar identidad desde la misma sesión.
+            AuthSessionData auth
+                    = AuthSessionManager.getSessionData(request);
+
+            String username = auth.getUsername();
+
+            if (username == null || username.trim().isEmpty()) {
+                response.sendError(
+                        HttpServletResponse.SC_UNAUTHORIZED
+                );
+                return;
+            }
+
+            String jwt = tokenService.generateToken(
+                    username,
+                    "COMPANY_AI_LIVE_CHAT",
+                    "LIVE_CHAT"
+            );
+
+            JSONObject result = new JSONObject()
+                    .put("success", true)
+                    .put("token", jwt);
+
+            response.getWriter().write(result.toString());
+
         } catch (AuthSessionManager.SessionExpiredException ex) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+            response.setStatus(
+                    HttpServletResponse.SC_UNAUTHORIZED
+            );
+
             response.getWriter().write(
                     new JSONObject()
                             .put("success", false)
                             .put("message", "Sesión vencida")
-                            .toString());
-            return;
-        } catch (IOException ex) {
-            getServletContext().log("Error validando sesión WebSocket", ex);
+                            .toString()
+            );
 
-            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+        } catch (IOException ex) {
+
+            getServletContext().log(
+                    "Error validando sesión WebSocket", ex
+            );
+
+            response.setStatus(
+                    HttpServletResponse.SC_SERVICE_UNAVAILABLE
+            );
+
             response.getWriter().write(
                     new JSONObject()
                             .put("success", false)
-                            .put("message", "No se pudo validar la sesión")
-                            .toString());
-
-            return;
+                            .put("message",
+                                    "Error temporal de autenticación")
+                            .toString()
+            );
         }
-        // 2. Obtener el perfil guardado durante el login.
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            response.sendError(
-                    HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-        JSONObject profile =(JSONObject) session.getAttribute("profile");
-
-        if (profile == null) {
-            response.sendError(
-                    HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-
-        String userId = profile.optString("Usuario", "");
-        if (userId.isEmpty()) {
-            response.sendError(
-                    HttpServletResponse.SC_UNAUTHORIZED);
-            return;
-        }
-        // 3. Generar el JWT RSA de WebChat.
-        String jwt = tokenService.generateToken(
-                userId,
-                "COMPANY_AI_LIVE_CHAT",
-                "LIVE_CHAT"
-        );
-        // 4. Devolver el JWT al navegador.
-        JSONObject result = new JSONObject()
-                .put("success", true)
-                .put("token", jwt);
-
-        response.getWriter().write(result.toString());
     }
-    
+
 }

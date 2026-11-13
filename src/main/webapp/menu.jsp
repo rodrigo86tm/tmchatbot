@@ -1,4 +1,4 @@
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html" pageEncoding="UTF-8" language="java"%>
 <%@ page import="javax.servlet.http.HttpSession"%>
 <%@ page import="java.text.SimpleDateFormat" %>
 <% String ctx = request.getContextPath(); %>
@@ -17,6 +17,7 @@
         <!-- ICONOS -->
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet"  href="css/gestion-ia.css?v=<%=version%>">
+        <link rel="stylesheet" href="css/metrics.css?v=<%=version%>">
         <link rel="icon" href="<%= ctx%>/assets/tmchatbot-favicon.ico">
 
     </head>
@@ -162,7 +163,7 @@
                             Analíticas
                         </div>
 
-                        <a class="menu-item" href="#">
+                        <a class="menu-item" href="#" id="metricsBTN" onclick="showSection('Metrics', 'metricsBTN');return false;">
 
                             <i class="bi bi-graph-up-arrow"></i>
 
@@ -377,6 +378,9 @@
                     <div id="LiveChat" class="content">
                         <%@ include file="jsp/LiveChat.jsp" %>
                     </div>
+                    <div id="Metrics" class="content">
+                        <%@ include file="jsp/Metrics.jsp" %>
+                    </div>
 
 
 
@@ -387,6 +391,8 @@
         <script>var contextPath = '<%= request.getContextPath()%>';</script>
         <script src="js/prompt.js?v=<%=version%>"></script>
         <script src="js/livechat.js?v=<%=version%>"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+        <script src="js/metrics.js?v=<%=version%>"></script>
         <script src="js/gestion-ia.js?v=<%=version%>"></script>
         <script>
             let currentSection = null;
@@ -400,6 +406,9 @@
                         );
 
                 switch (sectionId) {
+                    case "Metrics":
+                        await initMetrics();
+                        break;
 
                     case "Main":
 
