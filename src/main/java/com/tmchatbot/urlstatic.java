@@ -5,6 +5,8 @@
 package com.tmchatbot;
 
 public class urlstatic {
+    //public static String url = "http://localhost:47994";
+    public static String urlBase = "http://localhost:8344";
     //public static String url = "http://localhost:47994/api/ApiTM/";
     public static String url = "http://localhost:8344/api/ApiTM/";
     //public static String LIVECHAT_URL = "http://localhost:47994/api/livechat";

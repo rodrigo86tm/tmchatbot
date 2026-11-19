@@ -368,7 +368,8 @@ async function loadLiveChat() {
     }
 }
 async function loadLiveChatConversations() {
-
+    
+    const requestedChannel = lcCurrentChannel;
     const payload = {
         Accion:
                 "GetLiveChatConversations",
@@ -410,6 +411,8 @@ async function loadLiveChatConversations() {
             );
 
 
+    if (requestedChannel !== lcCurrentChannel) return;
+    
     lcConversations =
             Array.isArray(data)
             ? data

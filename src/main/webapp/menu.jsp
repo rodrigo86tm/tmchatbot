@@ -18,6 +18,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
         <link rel="stylesheet"  href="css/gestion-ia.css?v=<%=version%>">
         <link rel="stylesheet" href="css/metrics.css?v=<%=version%>">
+        <link rel="stylesheet" href="css/prompt-admin.css?v=<%=version%>">
         <link rel="icon" href="<%= ctx%>/assets/tmchatbot-favicon.ico">
 
     </head>
@@ -85,7 +86,7 @@
                             Chatbot
                         </div>
 
-                        <a class="menu-item active" href="#" id="chatbotBTN" onclick="showSection('Main', 'chatbotBTN'); return false">
+                        <a class="menu-item active" href="#" id="chatbotBTN" onclick="navigatePromptView('chatbot'); return false">
                             <i class="bi bi-robot"></i>
                             <span class="sidebar-text">Chatbot</span>
                         </a>
@@ -94,6 +95,9 @@
                             <i class="bi bi-chat"></i>
                             <span class="sidebar-text">Livechat</span>
                         </a>
+                        <a class="menu-item" href="#" id="temporaryBTN" onclick="navigatePromptView('temporary');return false"><i class="bi bi-clock-history"></i><span class="sidebar-text">Reglas temporales</span></a>
+                        <a class="menu-item" href="#" id="globalSettingsBTN" onclick="navigatePromptView('settings');return false"><i class="bi bi-sliders"></i><span class="sidebar-text">Configuración global</span></a>
+
 
                     </div>
 
@@ -394,6 +398,7 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
         <script src="js/metrics.js?v=<%=version%>"></script>
         <script src="js/gestion-ia.js?v=<%=version%>"></script>
+        <script src="js/prompt-admin.js?v=<%=version%>"></script>
         <script>
             let currentSection = null;
             let changingSection = false;
@@ -423,6 +428,41 @@
 
 
                         break;
+                }
+            }
+            // Navegación interna de Main: no usa temporizadores ni destruye el estado del prompt.
+            let promptViewRequest = 0;
+            async function navigatePromptView(view) {
+                const requestId = ++promptViewRequest;
+                const menuId = ({chatbot:'chatbotBTN',temporary:'temporaryBTN',settings:'globalSettingsBTN'})[view];
+                if (!menuId) return;
+                // Esperar si otra transición de vistas está terminando.
+                while (changingSection) await new Promise(resolve => setTimeout(resolve, 25));
+                const main = document.getElementById('Main');
+                if (!main.classList.contains('active')) {
+                    await showSection('Main', menuId);
+                }
+                if (requestId !== promptViewRequest) return;
+                document.querySelectorAll('.menu-item').forEach(x => x.classList.remove('active'));
+                document.getElementById(menuId)?.classList.add('active');
+                try {
+                    if (view === 'chatbot') {
+                        if (currentPrompt?.Sections) loadPrompt(currentPrompt);
+                        else await getPrompt(1);
+                    } else if (view === 'temporary') {
+                        await showTemporaryRules();
+                    } else {
+                        await showGlobalSettings();
+                    }
+                } catch (error) {
+                    console.error('Error en navegación de prompt:', error);
+                    const container = document.getElementById('promptSections');
+                    if (container && requestId === promptViewRequest) {
+                        const div = document.createElement('div');
+                        div.className = 'pa-error';
+                        div.textContent = 'No se pudo cargar esta pantalla: ' + error.message;
+                        container.replaceChildren(div);
+                    }
                 }
             }
             function getCookie(name) {

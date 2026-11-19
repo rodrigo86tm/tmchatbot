@@ -1,0 +1,230 @@
+.pa-overlay{
+    position:fixed;
+    inset:0;
+    background:#0007;
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px
+}
+.pa-dialog{
+    background:#fff;
+    border-radius:12px;
+    padding:24px;
+    width:min(650px,96vw);
+    max-height:90vh;
+    overflow:auto;
+    box-shadow:0 15px 50px #0003
+}
+.pa-dialog label,.pa-settings label{
+    display:block;
+    margin:12px 0;
+    font-size:14px
+}
+.pa-dialog input:not([type=checkbox]),.pa-dialog textarea,.pa-settings input:not([type=checkbox]),.pa-settings textarea,.pa-settings select{
+    display:block;
+    width:100%;
+    padding:9px;
+    border:1px solid #d9d4e5;
+    border-radius:7px;
+    font:inherit;
+    box-sizing:border-box
+}
+.pa-buttons{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:18px
+}
+.pa-dialog button,.pa-temp-card button,.pa-settings button{
+    padding:7px 13px;
+    margin:5px;
+    border:1px solid #ddd;
+    border-radius:7px;
+    cursor:pointer
+}
+.pa-save,.t-save,.pa-save-settings{
+    background:#8a49bd;
+    color:#fff
+}
+.pa-temp-card{
+    background:#fff;
+    border:1px solid #e6e0ef;
+    border-radius:10px;
+    padding:14px;
+    margin:12px 0
+}
+.pa-temp-card small{
+    display:block;
+    color:#777
+}
+.pa-settings{
+    padding:16px
+}
+
+/* REV2: vistas administrativas integradas en el diseño principal */
+#promptSections .pa-page{
+    max-width:1080px;
+    margin:0 auto;
+    padding:18px 12px 36px;
+    color:var(--text,#373343);
+    font-family:inherit
+}
+#promptSections .pa-page-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:20px;
+    flex-wrap:wrap
+}
+#promptSections .pa-page-header h2{
+    font-size:21px;
+    line-height:1.3;
+    font-weight:650;
+    margin:0 0 5px
+}
+#promptSections .pa-page-header p{
+    font-size:13px;
+    color:var(--muted,#777181);
+    margin:0;
+    line-height:1.5
+}
+#promptSections .pa-primary,#promptSections .pa-save-settings{
+    border:0;
+    border-radius:9px;
+    background:var(--purple,#853da5);
+    color:white;
+    padding:11px 17px;
+    font-weight:600;
+    cursor:pointer;
+    box-shadow:0 3px 9px #853da51c
+}
+#promptSections .pa-primary:hover,#promptSections .pa-save-settings:hover{
+    filter:brightness(.95)
+}
+#promptSections .pa-count{
+    font-size:12px;
+    color:var(--muted,#777181);
+    margin:0 0 12px
+}
+#promptSections .pa-empty{
+    background:#fff;
+    border:1px dashed #d9cbe4;
+    border-radius:14px;
+    min-height:220px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    gap:10px;
+    padding:25px;
+    color:var(--muted,#777181)
+}
+#promptSections .pa-empty i{
+    font-size:28px;
+    color:var(--purple,#853da5)
+}
+#promptSections .pa-empty strong{
+    color:var(--text,#373343);
+    font-size:15px
+}
+#promptSections .pa-empty span{
+    font-size:13px;
+    max-width:440px
+}
+#promptSections .pa-temp-card{
+    padding:18px 20px;
+    margin:10px 0;
+    border:1px solid var(--border,#e9e6ef);
+    border-radius:13px;
+    box-shadow:0 2px 7px #34253c08
+}
+#promptSections .pa-temp-card strong{
+    font-size:14px
+}
+#promptSections .pa-temp-card p{
+    white-space:pre-wrap;
+    line-height:1.6;
+    font-size:13px;
+    color:var(--text,#373343)
+}
+#promptSections .pa-temp-card small{
+    margin:9px 0 13px;
+    font-size:12px
+}
+#promptSections .pa-status{
+    display:inline-block;
+    margin-left:12px;
+    padding:3px 9px;
+    border-radius:20px;
+    background:#f3edf5;
+    color:#786b80;
+    font-size:11px
+}
+#promptSections .pa-status.is-active{
+    background:#edf8ef;
+    color:#287e40
+}
+#promptSections .pa-secondary{
+    background:#fff;
+    color:var(--purple,#853da5);
+    border:1px solid #d8c4e4!important
+}
+#promptSections .pa-settings{
+    background:#fff;
+    border:1px solid var(--border,#e9e6ef);
+    border-radius:14px;
+    padding:24px;
+    box-shadow:0 2px 8px #34253c08
+}
+#promptSections .pa-settings h3{
+    font-size:16px;
+    margin:0 0 18px
+}
+#promptSections .pa-settings label{
+    color:var(--text,#373343);
+    font-size:13px;
+    font-weight:500;
+    margin:16px 0
+}
+#promptSections .pa-settings input:not([type=checkbox]),#promptSections .pa-settings textarea,#promptSections .pa-settings select{
+    margin-top:7px;
+    padding:11px 12px;
+    background:#fff;
+    border:1px solid #dcd5e5;
+    border-radius:9px
+}
+#promptSections .pa-settings input[type=checkbox]{
+    accent-color:var(--purple,#853da5);
+    margin-right:7px
+}
+#promptSections .pa-settings .pa-warning{
+    background:#fff9ed;
+    border:1px solid #f4dfad;
+    border-radius:9px;
+    padding:13px;
+    color:#7d5c20;
+    font-size:12px;
+    line-height:1.5
+}
+#promptSections .pa-error{
+    margin:20px;
+    padding:20px;
+    border-radius:10px;
+    background:#fff2f2;
+    color:#a23b3b
+}
+@media(max-width:700px){
+    #promptSections .pa-page{
+        padding:12px 0 24px
+    }
+    #promptSections .pa-page-header{
+        align-items:flex-start
+    }
+    #promptSections .pa-settings{
+        padding:16px
+    }
+}

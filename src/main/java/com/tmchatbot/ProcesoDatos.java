@@ -23,7 +23,7 @@ public class ProcesoDatos extends HttpServlet {
             throws ServletException, IOException {
         //HttpSession session = request.getSession(false);
         //String token = (session != null) ? (String) session.getAttribute("token") : null;
-        String token = getToken.token(request);
+        
         
         //if (token != null){
             BufferedReader reader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
@@ -40,7 +40,7 @@ public class ProcesoDatos extends HttpServlet {
             Enviar(response, jsonBody.toString(), "");
             return;
         }
-
+        String token = getToken.token(request);
         // Las demás operaciones requieren token.
         if (token == null || token.trim().isEmpty()) {
             Salir(response);
