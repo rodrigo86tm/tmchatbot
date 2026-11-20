@@ -1,3 +1,118 @@
+
+// Notificaciones sonoras: independientes del estado de lectura.
+const lcSoundSettingsKey = "tmchatbot.livechat.sound.v1";
+let lcSoundVolume = 0.65;
+let lcSoundEnabled = true;
+let lcSoundContext = null;
+const lcNotifiedMessageIds = new Set();
+try {
+    const saved = JSON.parse(localStorage.getItem(lcSoundSettingsKey) || "null");
+    if (saved) {
+        lcSoundVolume = Math.max(0, Math.min(1, Number(saved.volume ?? 0.65)));
+        lcSoundEnabled = saved.enabled !== false;
+    }
+} catch (_) { /* configuración anterior inválida */ }
+
+function lcSaveSoundSettings() {
+    try {
+        localStorage.setItem(lcSoundSettingsKey, JSON.stringify({
+            enabled: lcSoundEnabled, volume: lcSoundVolume
+        }));
+    } catch (_) { /* almacenamiento opcional */ }
+}
+
+function lcUnlockSound() {
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        lcSoundContext ??= new AudioCtx();
+        if (lcSoundContext.state === "suspended") {
+            lcSoundContext.resume().catch(() => {});
+        }
+    } catch (error) { console.debug("Audio no disponible", error); }
+}
+document.addEventListener("pointerdown", lcUnlockSound, { passive: true });
+document.addEventListener("keydown", lcUnlockSound);
+
+function lcPlayNotificationSound(force = false) {
+    if (!force && !lcSoundEnabled) return;
+    if (lcSoundVolume <= 0) return;
+    try {
+        lcUnlockSound();
+        if (!lcSoundContext || lcSoundContext.state !== "running") return;
+        const t = lcSoundContext.currentTime;
+        [0, 0.14].forEach((delay, i) => {
+            const osc = lcSoundContext.createOscillator();
+            const gain = lcSoundContext.createGain();
+            osc.type = "sine";
+            osc.frequency.value = i === 0 ? 660 : 880;
+            gain.gain.setValueAtTime(0.0001, t + delay);
+            gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, lcSoundVolume * 0.12), t + delay + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.12);
+            osc.connect(gain).connect(lcSoundContext.destination);
+            osc.start(t + delay);
+            osc.stop(t + delay + 0.13);
+        });
+    } catch (error) { console.debug("No se pudo reproducir notificación", error); }
+}
+
+function lcNotifyCustomerMessage(message) {
+    const sender = String(message.senderType ?? message.SenderType ?? "").toUpperCase();
+    if (sender !== "CUSTOMER" && sender !== "USER") return;
+    const id = message.id ?? message.Id;
+    if (id != null) {
+        const key = String(id);
+        if (lcNotifiedMessageIds.has(key)) return;
+        lcNotifiedMessageIds.add(key);
+        if (lcNotifiedMessageIds.size > 600) {
+            lcNotifiedMessageIds.delete(lcNotifiedMessageIds.values().next().value);
+        }
+    }
+    lcPlayNotificationSound();
+}
+
+function initializeLiveChatSoundSettings() {
+    const bell = document.getElementById("tmNotificationBell");
+    const panel = document.getElementById("tmNotificationPanel");
+    const volume = document.getElementById("tmNotificationVolume");
+    const enabled = document.getElementById("tmNotificationEnabled");
+    const value = document.getElementById("tmNotificationVolumeValue");
+    const test = document.getElementById("tmNotificationTest");
+    if (!bell || !panel || bell.dataset.initialized) return;
+    bell.dataset.initialized = "true";
+    const refresh = () => {
+        enabled.checked = lcSoundEnabled;
+        volume.value = String(Math.round(lcSoundVolume * 100));
+        volume.disabled = !lcSoundEnabled;
+        value.textContent = Math.round(lcSoundVolume * 100) + "%";
+    };
+    refresh();
+    bell.addEventListener("click", event => {
+        event.stopPropagation();
+        panel.hidden = !panel.hidden;
+        bell.setAttribute("aria-expanded", String(!panel.hidden));
+        lcUnlockSound();
+    });
+    panel.addEventListener("click", event => event.stopPropagation());
+    document.addEventListener("click", () => {
+        panel.hidden = true;
+        bell.setAttribute("aria-expanded", "false");
+    });
+    enabled.addEventListener("change", () => {
+        lcSoundEnabled = enabled.checked;
+        lcSaveSoundSettings();
+        refresh();
+    });
+    volume.addEventListener("input", () => {
+        lcSoundVolume = Number(volume.value) / 100;
+        lcSaveSoundSettings();
+        refresh();
+    });
+    test.addEventListener("click", () => lcPlayNotificationSound(true));
+}
+
+document.addEventListener("DOMContentLoaded", initializeLiveChatSoundSettings);
+
 let lcConversations = [];
 let lcCurrentConversation = null;
 let lcCurrentOperatorId = null;
@@ -164,6 +279,29 @@ function updateLiveChatFilterButtons() {
                 "aria-pressed",
                 String(active)
                 );
+    });
+    updateLiveChatFilterUnreadDots();
+}
+
+function updateLiveChatFilterUnreadDots() {
+    document.querySelectorAll("#lcFilterRow [data-lc-filter]").forEach(button => {
+        const filter = button.dataset.lcFilter;
+        const count = lcConversations.filter(c => {
+            if (Number(c.UnreadCount || 0) <= 0) return false;
+            const mode = String(c.HandlingMode || "").toUpperCase();
+            const sender = String(c.LastSenderType || "").toUpperCase();
+            if (filter === "AI") return mode === "AI";
+            if (filter === "HUMAN") return mode === "HUMAN";
+            if (filter === "UNANSWERED") return (sender === "USER" || sender === "CUSTOMER") && !isFarewellMessage(c.LastMessage);
+            return true;
+        }).length;
+        let dot = button.querySelector(".lc-filter-unread-indicator");
+        if (count && !dot) {
+            dot = document.createElement("span");
+            dot.className = "lc-filter-unread-indicator";
+            dot.setAttribute("aria-hidden", "true");
+            button.appendChild(dot);
+        } else if (!count && dot) dot.remove();
     });
 }
 function initializeChannelSelector() {
@@ -565,6 +703,7 @@ function renderConversationList() {
                 "No hay conversaciones.";
 
         container.appendChild(empty);
+        updateLiveChatFilterUnreadDots();
         return;
     }
 
@@ -580,6 +719,7 @@ function renderConversationList() {
     });
 
     container.appendChild(fragment);
+    updateLiveChatFilterUnreadDots();
 }
 function getFilteredConversations() {
 
@@ -996,6 +1136,44 @@ function getMessageSenderType(
 
     return "SYSTEM";
 }
+// Separadores de fecha del LiveChat. Se utiliza la zona horaria local del navegador.
+function lcDateKey(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function lcDateLabel(value) {
+    const key = lcDateKey(value);
+    if (!key) return "";
+
+    const now = new Date();
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    if (key === lcDateKey(now)) return "Hoy";
+    if (key === lcDateKey(yesterday)) return "Ayer";
+
+    return new Intl.DateTimeFormat("es-AR", {
+        day: "numeric", month: "long", year: "numeric"
+    }).format(new Date(value));
+}
+
+function createLiveChatDateSeparator(value) {
+    const element = document.createElement("div");
+    element.className = "lc-date-separator";
+    const text = document.createElement("span");
+    text.textContent = lcDateLabel(value);
+    element.appendChild(text);
+    return element;
+}
+
+function lcMessageDate(message) {
+    return message.CreatedAt ?? message.createdAt;
+}
+
 function renderMessages() {
 
     const container =
@@ -1023,16 +1201,18 @@ function renderMessages() {
     }
 
 
-    lcMessages.forEach(
-            message => {
+    let previousDateKey = null;
+    lcMessages.forEach(message => {
+        const date = lcMessageDate(message);
+        const dateKey = lcDateKey(date);
 
-                container.appendChild(
-                        createMessageElement(
-                                message
-                                )
-                        );
-            }
-    );
+        if (dateKey && dateKey !== previousDateKey) {
+            container.appendChild(createLiveChatDateSeparator(date));
+        }
+        if (dateKey) previousDateKey = dateKey;
+
+        container.appendChild(createMessageElement(message));
+    });
 }
 function createMessageElement(
         message
@@ -1465,8 +1645,8 @@ function connectLiveChatSocket(token) {
     const protocol = location.protocol === "https:"
             ? "wss:"
             : "ws:";
-    //const url = "ws://localhost:47994/ws/livechat?token=" +  encodeURIComponent(token);
-    const url = protocol + "//" +  window.location.host + "/ws/livechat?token=" + encodeURIComponent(token);
+    const url = "ws://localhost:47994/ws/livechat?token=" +  encodeURIComponent(token);
+    //const url = protocol + "//" +  window.location.host + "/ws/livechat?token=" + encodeURIComponent(token);
 
     const ws = new WebSocket(url);
     lcSocket = ws;
@@ -1645,6 +1825,8 @@ function handleMessageCreated(event) {
     const message = event.message;
     if (!message)
         return;
+    // Notificar incluso si la conversación está abierta y se marca como leída.
+    lcNotifyCustomerMessage(message);
     /*
      * 1. Actualizamos lista izquierda.
      */
@@ -1716,14 +1898,20 @@ function handleMessageCreated(event) {
          */
         if (!lcMessages.some(x => x.Id === normalized.Id)) {
 
+            const previousMessage = lcMessages[lcMessages.length - 1];
+            const previousDateKey = previousMessage
+                    ? lcDateKey(lcMessageDate(previousMessage)) : null;
+            const newDate = lcMessageDate(normalized);
+            const newDateKey = lcDateKey(newDate);
+
             lcMessages.push(normalized);
             const container = document.getElementById("lcMessages");
-            container?.appendChild(
-                    createMessageElement(
-                            normalized
-                            )
-                    );
-
+            if (container) {
+                if (newDateKey && newDateKey !== previousDateKey) {
+                    container.appendChild(createLiveChatDateSeparator(newDate));
+                }
+                container.appendChild(createMessageElement(normalized));
+            }
 
             scrollLiveChatBottom();
         }
@@ -2176,3 +2364,60 @@ function handleConversationEvent(event) {
         scrollLiveChatBottom();
     }
 }
+
+// REV5: adjuntos WhatsApp; transporte HTTP autenticado mediante servlet.
+(function () {
+    let selectedFile = null;
+    document.addEventListener("click", function (event) {
+        const button = event.target.closest("#lcAttachButton");
+        if (!button) return;
+        if (!lcCurrentConversation || String(lcCurrentConversation.ChannelCode || "").toUpperCase() !== "WHATSAPP" ||
+            String(lcCurrentConversation.HandlingMode || "").toUpperCase() !== "HUMAN") {
+            alert("Los adjuntos están disponibles únicamente para conversaciones WhatsApp asignadas al operador.");
+            return;
+        }
+        document.getElementById("lcAttachmentInput")?.click();
+    });
+    document.addEventListener("change", function (event) {
+        if (event.target.id !== "lcAttachmentInput") return;
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (file.size > 16 * 1024 * 1024) { alert("Máximo 16 MB."); event.target.value = ""; return; }
+        selectedFile = file;
+        const send = document.getElementById("lcSendButton"); if (send) send.disabled = false;
+        const preview = document.getElementById("lcAttachmentPreview");
+        if (preview) { preview.hidden = false; preview.textContent = "📎 " + file.name + " (clic para quitar)"; preview.title = "Quitar adjunto"; preview.style.cursor = "pointer"; }
+    });
+    document.addEventListener("click", function (event) {
+        if (event.target.id !== "lcAttachmentPreview") return;
+        selectedFile = null;
+        event.target.hidden = true;
+        const input = document.getElementById("lcAttachmentInput"); if (input) input.value = "";
+    });
+    // Captura solo cuando hay archivo. Los mensajes de texto conservan el flujo WebSocket existente.
+    document.addEventListener("click", async function (event) {
+        if (!event.target.closest("#lcSendButton") || !selectedFile) return;
+        event.stopImmediatePropagation();
+        event.preventDefault();
+        const file = selectedFile;
+        const conversationId = lcCurrentConversation?.Id;
+        if (!conversationId) return;
+        const button = document.getElementById("lcSendButton");
+        const data = new FormData();
+        data.append("conversationId", String(conversationId));
+        data.append("file", file);
+        data.append("caption", document.getElementById("lcMessageInput")?.value || "");
+        if (button) button.disabled = true;
+        try {
+            const response = await fetch("LiveChatUpload", { method: "POST", body: data, credentials: "same-origin" });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.error || "Error al enviar adjunto");
+            selectedFile = null;
+            const picker = document.getElementById("lcAttachmentInput"); if (picker) picker.value = "";
+            const preview = document.getElementById("lcAttachmentPreview"); if (preview) preview.hidden = true;
+            const input = document.getElementById("lcMessageInput"); if (input) input.value = "";
+            updateChatInput();
+        } catch (error) { alert(error.message); }
+        finally { if (button) button.disabled = false; }
+    }, true);
+})();

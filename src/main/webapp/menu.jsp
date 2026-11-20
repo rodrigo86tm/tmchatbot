@@ -9,6 +9,7 @@
 %>
 <!DOCTYPE html>
 <html lang="es">
+    <script>try { document.documentElement.dataset.theme = localStorage.getItem("tmchatbot.theme") === "dark" ? "dark" : "light"; } catch (_) { document.documentElement.dataset.theme = "light"; }</script>
     <head>
         <meta charset="UTF-8">
 
@@ -19,6 +20,7 @@
         <link rel="stylesheet"  href="css/gestion-ia.css?v=<%=version%>">
         <link rel="stylesheet" href="css/metrics.css?v=<%=version%>">
         <link rel="stylesheet" href="css/prompt-admin.css?v=<%=version%>">
+        <link rel="stylesheet" href="css/dark-mode.css?v=<%=version%>">
         <link rel="icon" href="<%= ctx%>/assets/tmchatbot-favicon.ico">
 
     </head>
@@ -314,12 +316,28 @@
                             <i class="bi bi-book"></i>
                         </button>
 
-                        <button class="top-icon">
-                            <i class="bi bi-bell"></i>
-                        </button>
+                        <div class="tm-notification-settings">
+                            <button type="button" class="top-icon" id="tmNotificationBell"
+                                    aria-label="Configurar sonido de notificaciones"
+                                    aria-expanded="false" aria-controls="tmNotificationPanel">
+                                <i class="bi bi-bell"></i>
+                            </button>
+                            <div id="tmNotificationPanel" class="tm-notification-panel" hidden>
+                                <strong>Notificaciones de LiveChat</strong>
+                                <label class="tm-notification-switch">
+                                    <input type="checkbox" id="tmNotificationEnabled" checked>
+                                    Activar sonido
+                                </label>
+                                <label for="tmNotificationVolume">Volumen: <span id="tmNotificationVolumeValue">65%</span></label>
+                                <input id="tmNotificationVolume" type="range" min="0" max="100" value="65" step="5">
+                                <button type="button" id="tmNotificationTest">Probar sonido</button>
+                            </div>
+                        </div>
 
-                        <button class="top-icon">
-                            <i class="bi bi-palette"></i>
+                        <button type="button" class="top-icon" id="tmThemeToggle"
+                                title="Activar tema oscuro" aria-label="Cambiar tema claro u oscuro"
+                                aria-pressed="false">
+                            <i class="bi bi-moon-stars" id="tmThemeIcon"></i>
                         </button>
 
                         <div class="tm-user-menu" id="tmUserMenu">
@@ -393,6 +411,7 @@
             </main>
         </div>
         <script>var contextPath = '<%= request.getContextPath()%>';</script>
+        <script src="js/theme.js?v=<%=version%>"></script>
         <script src="js/prompt.js?v=<%=version%>"></script>
         <script src="js/livechat.js?v=<%=version%>"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>

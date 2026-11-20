@@ -21,7 +21,7 @@
             <button
                 type="button"
                 class="lc-icon-btn"
-                title="Nueva conversación">
+                title="Nueva conversaci?n">
 
                 <i class="bi bi-chat-square-plus"></i>
 
@@ -39,7 +39,7 @@
             <button
                 type="button"
                 class="lc-icon-btn lc-more-btn"
-                title="Más opciones">
+                title="M?s opciones">
 
                 <i class="bi bi-three-dots-vertical"></i>
 
@@ -91,7 +91,7 @@
                 Sin responder
             </button>
 
-            <!-- Mantener el botón de archivadas -->
+            <!-- Mantener el bot?n de archivadas -->
             <button type="button"
                     class="lc-icon-btn lc-archive-btn"
                     title="Archivadas">
@@ -151,7 +151,7 @@
                         <i class="bi bi-person-check"></i>
 
                         <span id="lcAssignmentText">
-                            Tomar conversación
+                            Tomar conversaci?n
                         </span>
 
                     </button>
@@ -212,7 +212,7 @@
                 <div class="lc-chat-meta">
 
                     <span class="lc-meta-label">
-                        Área:
+                        ?rea:
                     </span>
 
                     <button
@@ -264,19 +264,21 @@
 
             <button
                 type="button"
-                class="lc-add-btn">
+                class="lc-add-btn" id="lcAttachButton" title="Adjuntar archivo (WhatsApp)">
 
                 <i class="bi bi-plus-lg"></i>
 
             </button>
 
 
+            <input id="lcAttachmentInput" type="file" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.xls,.xlsx" hidden>
+            <div id="lcAttachmentPreview" hidden style="font-size:12px;max-width:220px;overflow:hidden;text-overflow:ellipsis"></div>
             <div class="lc-input-wrapper">
 
                 <textarea
                     id="lcMessageInput"
                     rows="1"
-                    placeholder='Escribe un mensaje, "/" para respuestas rápidas, ":" para emojis o "--" para notas'></textarea>
+                    placeholder='Escribe un mensaje, "/" para respuestas r?pidas, ":" para emojis o "--" para notas'></textarea>
 
                 <button
                     type="button"

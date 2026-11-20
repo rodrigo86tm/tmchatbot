@@ -3251,3 +3251,82 @@ visible
         width: 100%;
     }
 }
+/* Configuración de sonido y puntos de notificación en filtros */
+.tm-notification-settings {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.tm-notification-panel[hidden] {
+    display: none !important;
+}
+.tm-notification-panel {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    z-index: 9999;
+    width: 270px;
+    padding: 17px;
+    background: #fff;
+    color: #383044;
+    border: 1px solid #e7deec;
+    border-radius: 13px;
+    box-shadow: 0 12px 32px rgba(30,15,40,.15);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.tm-notification-panel strong {
+    font-size: 14px;
+}
+.tm-notification-panel label {
+    font-size: 12px;
+}
+.tm-notification-switch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.tm-notification-panel input[type="range"] {
+    width: 100%;
+    accent-color: #9145af;
+    cursor: pointer;
+}
+.tm-notification-panel button {
+    border: 1px solid #dcc6e5;
+    background: #f5ecf8;
+    color: #77399a;
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+}
+.lc-filter-unread-indicator {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #e52636;
+    margin-left: 2px;
+}
+/* Separadores de fecha entre mensajes (Hoy / Ayer / fecha completa). */
+.lc-date-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    clear: both;
+    margin: 18px 0;
+    width: 100%;
+    pointer-events: none;
+}
+
+.lc-date-separator span {
+    display: inline-block;
+    padding: 6px 13px;
+    border-radius: 12px;
+    background: #f0edf5;
+    color: #777080;
+    font-size: 11px;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+}
